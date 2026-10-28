@@ -8,8 +8,6 @@
 #    atualiza sozinho pela imagem.
 #
 # Pré-requisitos (uma vez só):
-#   - Secret SIGNING_SECRET com o conteúdo de cosign.key
-#     (gerado com: cosign generate-key-pair) e cosign.pub commitado na raiz.
 #   - Pacote da imagem PÚBLICO no GHCR (o job "iso" lê a imagem sem login):
 #     perfil > Packages > <nome da imagem> > Package settings > Change visibility.
 name: Compilar imagem e gerar ISO
@@ -46,7 +44,6 @@ jobs:
         uses: blue-build/github-action@v1
         with:
           recipe: recipe.yml
-          cosign_private_key: ${{ secrets.SIGNING_SECRET }}
           registry_token: ${{ github.token }}
           pr_event_number: ${{ github.event.number }}
           maximize_build_space: true
@@ -109,7 +106,7 @@ jobs:
           image_name: ${{ steps.meta.outputs.name }}
           image_repo: ${{ steps.meta.outputs.repo }}
           image_tag: latest
-          image_signed: true
+          image_signed: false
           version: ${{ steps.meta.outputs.version }}
           variant: Silverblue   # só afeta o instalador (Anaconda); a imagem instalada é a sua (COSMIC)
           iso_name: ${{ steps.meta.outputs.iso }}
