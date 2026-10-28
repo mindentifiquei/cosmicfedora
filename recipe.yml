@@ -1,0 +1,67 @@
+# recipe.yml
+name: cosmic-hardened
+description: Fedora Cosmic ultra-podado sem BigTechs e com foco em privacidade estrita.
+base-image: ghcr.io/ublue-os/cosmic-main
+image-version: latest
+
+modules:
+  - type: rpm-ostree
+    install:
+      - opensnitch
+    remove:
+      # =========================================================================
+      # 1. NAVEGADORES, BRANDS E MÍDIA (Evita conexões com parceiros comerciais)
+      # =========================================================================
+      - firefox               # Navegador padrão com telemetria da Mozilla/Google
+      - fedora-bookmarks      # Links patrocinados e favoritos padrão da distro
+      - fedora-logos          # Logos e marcas d'água comerciais do Fedora
+      - plymouth-theme-fedora # Tema visual do boot proprietário da distro
+      - totem                 # GStreamer/Player padrão do GNOME (coleta metadados de mídia)
+      - gnome-tour            # Janela de boas-vindas e guias comerciais
+
+      # =========================================================================
+      # 2. TELEMETRIA, METRICAS E DIAGNÓSTICOS (Corta o envio de dados para fora)
+      # =========================================================================
+      - abrt                  # Automatic Bug Reporting Tool (Núcleo)
+      - abrt-cli              # Interface de linha de comando do ABRT
+      - abrt-addon-ccpp       # Captura falhas de programas em C/C++ para enviar logs
+      - abrt-addon-kerneloops # Captura falhas do Kernel e envia para servidores RedHat
+      - abrt-plugin-sosreport # Gera relatórios detalhados do seu hardware para envio
+      - sos                   # Coletor de informações profundas do sistema operacional
+
+      # =========================================================================
+      # 3. CONECTIVIDADE EM NUVEM E INSIGHTS (Corta integrações Big Tech)
+      # =========================================================================
+      - NetworkManager-cloud-setup # Configuração automática para nuvens AWS, Azure e GCP
+      - geoclue2              # API de Geolocalização (rastreia sua posição por Wi-Fi/IP)
+      - ssnid                 # Telemetria de rede e identificação de SSID
+      - rng-tools             # Pode enviar entropia local para servidores (geração de chaves)
+
+      # =========================================================================
+      # 4. DESCOBERTA DE REDE LOCAL (Impede o PC de bisbilhotar sua casa ou ser visto)
+      # =========================================================================
+      - avahi                 # Daemon mDNS que escaneia a rede local atrás de outros aparelhos
+      - avahi-libs            # Bibliotecas de suporte do Avahi
+      - nss-mdns              # Resolução de nomes local que expõe o nome do seu PC na rede
+      - samba-client          # Suporte a redes Windows (se você não compartilha arquivos na rede)
+
+      # =========================================================================
+      # 5. SUBSISTEMAS DE HARDWARE E IMPRESSÃO (Remove daemons inúteis em segundo plano)
+      # =========================================================================
+      - cups                  # Common Unix Printing System (Serviço de impressora rodando 24/7)
+      - cups-filters          # Filtros de conversão de imagem para impressão
+      - cups-libs             # Bibliotecas do sistema de impressão
+      - fprintd               # Daemon de leitura de impressão digital (se seu PC não tem ou você não usa)
+      - fprintd-pam           # Integração da biometria com a tela de login
+      - pcsc-lite             # Suporte a Smart Cards / Leitores de cartão físico proprietários
+
+      # =========================================================================
+      # 6. INDEXADORES E RASTREADORES DE ARQUIVOS (Privacidade local de dados)
+      # =========================================================================
+      - tracker3              # Indexador do GNOME que lê todos os seus arquivos locais (documentos, fotos) 
+                              # para criar um banco de dados de busca. Consome CPU e tira sua privacidade local.
+      - tracker3-miners       # O "robô" específico que fica minerando seus dados nas pastas locais
+
+  - type: script
+    scripts:
+      - harden.sh
