@@ -1,64 +1,51 @@
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+# Local no repositório: recipes/recipe.yml
+---
+# A imagem será publicada em ghcr.io/<seu-usuario>/<name>
 name: cosmic-hardened
-description: Fedora Cosmic em estado de isolamento total, livre de BigTechs, telemetria oculta e daemons desnecessários.
-base-image: ghcr.io/ublue-os/cosmic-main
-image-version: latest
+description: Fedora COSMIC Atomic enxuto, sem telemetria e sem bloat.
+
+# Base: Fedora COSMIC Atomic (builds do Atomic SIG no Quay).
+# Confira se a tag existe antes do 1º build:
+#   skopeo inspect docker://quay.io/fedora-ostree-desktops/cosmic-atomic:44 | head -n 5
+base-image: quay.io/fedora-ostree-desktops/cosmic-atomic
+# Fixe uma versão do Fedora (número). Para atualizar de major, troque aqui
+# (e confira que a tag existe). O workflow lê este valor para gerar a ISO,
+# por isso ele precisa ser um número inteiro.
+image-version: 44
 
 modules:
-  - type: rpm-ostree
-    install:
-      - opensnitch # Injeta o firewall interativo na raiz imutável
-    remove:
-      # --- 1. TELEMETRIA, DIAGNÓSTICOS E RELATÓRIOS DA RED HAT ---
-      - abrt
-      - abrt-cli
-      - abrt-addon-ccpp
-      - abrt-addon-kerneloops
-      - abrt-plugin-sosreport
-      - sos
-      - redhat-support-tool         # Ferramenta de suporte automatizado para servidores Red Hat
-      - redhat-support-lib-python    # Biblioteca de envio de dados de diagnóstico
+  # ---------------------------------------------------------------------------
+  # OPCIONAL — OpenSnitch (firewall de aplicações, controla conexões de saída).
+  # Desativado por padrão: o pacote não está nos repositórios do Fedora, então
+  # a instalação depende dos RPMs da página de Releases (e o OpenSnitch 1.8+
+  # traz a interface em PyQt6, o que adiciona bibliotecas Qt à imagem).
+  # Para ativar: 1) abra https://github.com/evilsocket/opensnitch/releases,
+  # 2) confira a versão e os nomes exatos dos .rpm (daemon + UI),
+  # 3) ajuste as URLs abaixo e descomente o bloco. O harden.sh habilita o
+  # serviço sozinho quando o pacote estiver presente.
+  # ---------------------------------------------------------------------------
+  # - type: dnf
+  #   install:
+  #     packages:
+  #       - https://github.com/evilsocket/opensnitch/releases/download/v1.8.0/opensnitch-1.8.0-1.x86_64.rpm
+  #       - https://github.com/evilsocket/opensnitch/releases/download/v1.8.0/opensnitch-ui-1.8.0-1.noarch.rpm
 
-      # --- 2. INTEGRAÇÕES CLOUD E ASSISTÊNCIA REMOTA ---
-      - NetworkManager-cloud-setup   # Evita varredura de metadados em nuvens AWS/Azure/GCP
-      - geoclue2                     # API de Geolocalização (Corta o rastreamento por IP/Wi-Fi)
-      - ssnid                        # Telemetria básica de identificação de rede
-      - rng-tools                    # Previne envio de entropia para servidores externos
-      - spice-vdagent                # Ferramenta para máquinas virtuais e acessos remotos comerciais
-      - qemu-guest-agent             # Agente de monitoramento em segundo plano (inútil em hardware real)
-
-      # --- 3. BISBILHOTADORES LOCAIS E INDEXADORES DE ARQUIVOS ---
-      - tracker3                     # Indexador que lê todos os seus arquivos pessoais
-      - tracker3-miners              # O minerador de arquivos em segundo plano
-      - mlocate                      # Indexador legado de arquivos locais que roda via cron diariamente
-
-      # --- 4. REDE, MDNS E COMPARTILHAMENTO DE INFORMAÇÕES ---
-      - avahi                        # Daemon mDNS que anuncia o nome do seu PC na rede local
-      - avahi-libs
-      - nss-mdns                     # Resolução de nomes local que expõe seu tráfego na rede doméstica
-      - samba-client                 # Suporte a protocolos de rede da Microsoft
-      - tcpdump                      # Utilitário de captura de pacotes (evita que exploits locais abusem dele)
-
-      # --- 5. REPOSITÓRIOS E COMPONENTES COMERCIAIS/PROPRIETÁRIOS ---
-      - firefox                      # Traz telemetria ativa e buscas integradas com a Google
-      - fedora-bookmarks             # Links patrocinados no navegador
-      - fedora-logos                 # Branding e marcas registradas comerciais
-      - fedora-release-identity-basic
-      - plymouth-theme-fedora        # Tema de inicialização proprietário da distro
-      - gnome-tour                   # Guia promocional e comercial
-
-      # --- 6. SUBSISTEMAS DE HARDWARE DESNECESSÁRIOS ---
-      - cups                         # Sistema de impressão rodando 24/7 (Grande vetor de vulnerabilidades)
-      - cups-filters
-      - cups-libs
-      - fprintd                      # Serviço de biometria/impressão digital
-      - fprintd-pam
-      - pcsc-lite                    # Suporte a Smart Cards e leitores de cartão criptográfico proprietários
-      - wirelesstools                # Utilitários de rede sem fio obsoletos que não usam criptografia moderna
-
-      # --- 7. EXTRAÇÃO DE MÍDIA E MULTIMÍDIA PADRÃO ---
-      - totem                        # Player de vídeo padrão do GNOME que busca codecs externos
-      - rygel                        # Servidor de mídia UPnP/DLNA que transmite seus arquivos na rede local
-
+  # Remoção de pacotes, serviços mascarados, sysctl, NetworkManager etc.
+  # Arquivo: files/scripts/harden.sh
   - type: script
     scripts:
       - harden.sh
+
+  # Navegador (o Firefox é removido pelo script). Instalado no primeiro boot,
+  # com internet. Troque pelo navegador que preferir (ID do Flathub).
+  - type: default-flatpaks
+    configurations:
+      - notify: false
+        scope: system
+        install:
+          - io.gitlab.librewolf-community
+
+  # Políticas de assinatura (cosign) para o rebase/atualização verificados.
+  # Mantenha por último.
+  - type: signing
