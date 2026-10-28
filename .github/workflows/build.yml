@@ -1,1 +1,25 @@
+name: Compilar ISO Customizada
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Compila automaticamente toda segunda-feira para manter atualizado
+  workflow_dispatch: # Permite que você clique em um botão para compilar quando quiser
 
+jobs:
+  bluebuild:
+    name: Compilar Imagem com BlueBuild
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    steps:
+      - name: Baixar o código do repositório
+        uses: actions/checkout@v4
+
+      - name: Executar o BlueBuild
+        uses: blue-build/github-action@v1
+        with:
+          recipe: 'recipe.yml'
+          cosign_private_key: ${{ secrets.SIGNING_SECRET }}
+          registry_token: ${{ github.token }}
+          prune: true
